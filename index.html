@@ -1,0 +1,337 @@
+<title>堺・大阪 お出かけ天気</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Zen+Maru+Gothic:wght@500;700&display=swap">
+<style>
+/* Layout: 1カラム。都市切替 → 外出時間の切替 → 今日のカード(前日差・外出時の気温・服装) → 7日間の一覧 */
+:root{
+  --bg:#F2F5F7; --surface:#FFFFFF; --ink:#1B2530; --muted:#5A6878; --line:#D9E0E6;
+  --warm:#C0441A; --cool:#1C68A8; --sun:#D99A00; --cloud:#8A97A5; --rain:#2E7FA6;
+  --chip:#E8EEF3; --advice:#FFF6E3; --advice-ink:#5A3D00; --cold-bg:#DCEBF8;
+  --f-head:"Zen Maru Gothic","BIZ UDPGothic","Hiragino Maru Gothic ProN",sans-serif;
+  --f-body:"BIZ UDPGothic","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12181F; --surface:#1B232C; --ink:#E9EEF3; --muted:#A3B0BD; --line:#2E3A46;
+  --warm:#FF8A5C; --cool:#6CB4F0; --sun:#F5C342; --cloud:#9AA8B6; --rain:#6CC0E6;
+  --chip:#26313C; --advice:#2E2715; --advice-ink:#F4DFAE; --cold-bg:#1C3348; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12181F; --surface:#1B232C; --ink:#E9EEF3; --muted:#A3B0BD; --line:#2E3A46;
+  --warm:#FF8A5C; --cool:#6CB4F0; --sun:#F5C342; --cloud:#9AA8B6; --rain:#6CC0E6;
+  --chip:#26313C; --advice:#2E2715; --advice-ink:#F4DFAE; --cold-bg:#1C3348; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.6}
+.wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px;display:flex;flex-direction:column;gap:16px}
+header{display:flex;flex-direction:column;gap:4px}
+h1{font-family:var(--f-head);font-size:1.7rem;margin:0;text-wrap:balance}
+.meta{color:var(--muted);font-size:.9rem}
+.seg-label{font-size:.95rem;color:var(--muted);margin-bottom:-8px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:var(--chip);padding:6px;border-radius:14px}
+.tabs button{font:700 1.1rem var(--f-head);border:0;border-radius:10px;padding:10px 8px;background:transparent;color:var(--muted);cursor:pointer;line-height:1.35}
+.tabs button small{display:block;font:400 .82rem var(--f-body)}
+.tabs button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.tabs button:focus-visible{outline:3px solid var(--cool);outline-offset:2px}
+.today{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:16px}
+.today-top{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.today-top svg{width:84px;height:84px;flex:none}
+.today-label{font-size:.95rem;color:var(--muted)}
+.today-wx{font-family:var(--f-head);font-size:1.5rem;font-weight:700}
+.temps{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.temp{border-radius:14px;background:var(--chip);padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.temp .k{font-size:.95rem;color:var(--muted)}
+.temp .v{font-size:2.6rem;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.temp.hi .v{color:var(--warm)} .temp.lo .v{color:var(--cool)}
+.diff{font-weight:700;font-size:1.05rem;font-variant-numeric:tabular-nums}
+.up{color:var(--warm)} .down{color:var(--cool)} .same{color:var(--muted)}
+.out{display:flex;flex-direction:column;gap:8px}
+.out h3{margin:0;font-size:1.05rem}
+.hours{display:flex;flex-wrap:wrap;gap:8px}
+.hr{border:1px solid var(--line);border-radius:12px;padding:6px 12px;text-align:center;min-width:4.4em;font-variant-numeric:tabular-nums}
+.hr .t{display:block;font-size:.85rem;color:var(--muted)}
+.hr .v{font-size:1.35rem;font-weight:700}
+.hr.coldest{background:var(--cold-bg);border-color:var(--cool)}
+.hr.coldest .t{color:var(--cool);font-weight:700}
+.note{font-size:.85rem;color:var(--muted)}
+.rainline{display:flex;align-items:center;gap:8px;font-size:1.05rem}
+.rainline b{color:var(--rain);font-size:1.3rem}
+.advice{background:var(--advice);color:var(--advice-ink);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.advice h2{font-family:var(--f-head);font-size:1.25rem;margin:0}
+.advice .basis{font-size:.95rem}
+.advice .main{font-size:1.2rem;font-weight:700}
+.advice ul{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:4px}
+.week{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.week h2{font-family:var(--f-head);font-size:1.2rem;margin:0;padding:14px 18px;border-bottom:1px solid var(--line)}
+.row{display:grid;grid-template-columns:5.2em 44px 1fr auto;align-items:center;gap:10px;padding:10px 18px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row.is-today{background:var(--chip)}
+.row svg{width:44px;height:44px}
+.d{font-weight:700;font-variant-numeric:tabular-nums}
+.d .wd{display:block;font-size:.85rem;color:var(--muted);font-weight:400}
+.d .wd.sat{color:var(--cool)} .d .wd.sun{color:var(--warm)}
+.w{min-width:0}
+.w .t{font-size:.95rem}
+.w .cl{font-size:.85rem;color:var(--muted)}
+.w .cl b{color:var(--cool)}
+.nums{text-align:right;font-variant-numeric:tabular-nums;display:flex;flex-direction:column;gap:2px}
+.nums .hl{font-size:1.15rem;font-weight:700}
+.nums .hl .h{color:var(--warm)} .nums .hl .l{color:var(--cool)}
+.nums .p{font-size:.85rem;color:var(--rain)}
+footer{color:var(--muted);font-size:.85rem;display:flex;flex-direction:column;gap:4px}
+@media (max-width:420px){.temp .v{font-size:2.2rem}.row{grid-template-columns:4.4em 38px 1fr auto;gap:8px;padding-inline:12px}.row svg{width:38px;height:38px}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>堺・大阪 お出かけ天気</h1>
+    <div class="meta" id="meta">データを準備しています…</div>
+  </header>
+
+  <div class="tabs" id="cityTabs" aria-label="地域をえらぶ">
+    <button id="city-sakai" aria-pressed="true" data-city="sakai">堺市</button>
+    <button id="city-osaka" aria-pressed="false" data-city="osaka">大阪市</button>
+  </div>
+
+  <div class="seg-label">外にいる時間は？</div>
+  <div class="tabs" id="planTabs" aria-label="外にいる時間をえらぶ">
+    <button id="plan-commute" aria-pressed="true" data-plan="commute">朝の通勤<small>7〜8時・帰り18時ごろ</small></button>
+    <button id="plan-day" aria-pressed="false" data-plan="day">昼のお出かけ<small>11時〜15時ごろ</small></button>
+  </div>
+
+  <section class="today" id="today" aria-live="polite"></section>
+
+  <section class="week">
+    <h2 id="weekTitle">これから1週間</h2>
+    <div id="week"></div>
+  </section>
+
+  <footer>
+    <div id="source"></div>
+    <div>服装のめやすは「外にいる時間帯でいちばん寒い気温」で判定しています。めやす：25℃以上 半袖／21〜24℃ 長袖1枚／17〜20℃ 薄手の羽織り／13〜16℃ セーターや薄手の上着／9〜12℃ コート／8℃以下 厚手のコートと小物。</div>
+    <div>「約」が付いた気温は、最高・最低気温から計算したおおよその値です。</div>
+  </footer>
+</div>
+
+<script>
+/* ===== 1. 予報データ（11月12日時点・ウェザーニュース） =====
+   ブラウザでファイルを直接開くと、最新予報(Open-Meteo)に自動で切り替わります。
+   h = 時刻ごとの気温（HRSの順）。h が無い日は最高・最低から推定します。 */
+const HRS=[7,8,11,12,13,14,15,18];
+const PLANS={
+  commute:{name:"朝の通勤",hours:[7,8,18],short:"朝夕"},
+  day:{name:"昼のお出かけ",hours:[11,12,13,14,15],short:"昼"}
+};
+const SNAPSHOT = {
+  label: "11月12日(木)時点の予報(ウェザーニュース)",
+  sakai: [
+    {d:"2026-11-11",hi:17,lo:5, p:0, w:"晴れ",c:"sun",h:[6,7,15,16,17,17,17,14]},
+    {d:"2026-11-12",hi:20,lo:8, p:40,w:"晴れのちくもり",c:"suncloud",h:[9,12,18,19,20,20,20,16]},
+    {d:"2026-11-13",hi:22,lo:13,p:40,w:"晴れ時々くもり",c:"suncloud",h:[12,14,20,21,21,21,21,18]},
+    {d:"2026-11-14",hi:21,lo:12,p:40,w:"くもり時々晴れ",c:"cloudsun"},
+    {d:"2026-11-15",hi:20,lo:14,p:80,w:"雨",c:"rain"},
+    {d:"2026-11-16",hi:19,lo:12,p:30,w:"くもり時々晴れ",c:"cloudsun"},
+    {d:"2026-11-17",hi:19,lo:10,p:60,w:"くもり一時雨",c:"cloudrain"},
+    {d:"2026-11-18",hi:19,lo:10,p:60,w:"くもり時々雨",c:"cloudrain"},
+    {d:"2026-11-19",hi:13,lo:7, p:20,w:"晴れ時々くもり",c:"suncloud"}
+  ],
+  osaka: [
+    {d:"2026-11-11",hi:17,lo:8, p:20,w:"晴れ",c:"sun",h:[9,11,15,17,17,17,17,15]},
+    {d:"2026-11-12",hi:21,lo:10,p:30,w:"晴れ時々くもり",c:"suncloud",h:[10,12,18,19,20,21,20,17]},
+    {d:"2026-11-13",hi:22,lo:13,p:20,w:"晴れ",c:"sun",h:[13,15,20,21,22,22,21,19]},
+    {d:"2026-11-14",hi:22,lo:13,p:40,w:"くもり",c:"cloud"},
+    {d:"2026-11-15",hi:20,lo:15,p:80,w:"雨",c:"rain"},
+    {d:"2026-11-16",hi:19,lo:14,p:30,w:"くもり時々晴れ",c:"cloudsun"},
+    {d:"2026-11-17",hi:19,lo:12,p:60,w:"くもり一時雨",c:"cloudrain"},
+    {d:"2026-11-18",hi:19,lo:11,p:60,w:"くもり時々雨",c:"cloudrain"},
+    {d:"2026-11-19",hi:13,lo:8, p:20,w:"晴れ時々くもり",c:"suncloud"}
+  ]
+};
+const CITIES = {
+  sakai:{name:"堺市",lat:34.5733,lon:135.4830},
+  osaka:{name:"大阪市",lat:34.6937,lon:135.5023}
+};
+
+/* ===== 2. 天気アイコン（SVG） ===== */
+const SUN='<circle cx="22" cy="20" r="9" fill="var(--sun)"/>';
+const SUN_RAYS='<g stroke="var(--sun)" stroke-width="2.5" stroke-linecap="round"><path d="M22 4v4M22 32v4M6 20h4M34 20h4M10.7 8.7l2.8 2.8M30.5 28.5l2.8 2.8M10.7 31.3l2.8-2.8M30.5 11.5l2.8-2.8"/></g>';
+const CLOUD=(x=0,y=0)=>`<path transform="translate(${x} ${y})" d="M14 38h22a8 8 0 0 0 0-16 11 11 0 0 0-21-2 8 8 0 0 0-1 18z" fill="var(--cloud)"/>`;
+const DROPS='<g stroke="var(--rain)" stroke-width="3" stroke-linecap="round"><path d="M18 42l-2 5M27 42l-2 5M36 42l-2 5"/></g>';
+const ICONS={
+  sun: SUN_RAYS+SUN,
+  suncloud: SUN_RAYS+SUN+CLOUD(6,4),
+  cloudsun: '<circle cx="16" cy="15" r="8" fill="var(--sun)"/>'+CLOUD(2,2),
+  cloud: CLOUD(-2,0),
+  cloudrain: CLOUD(0,-4)+DROPS,
+  rain: CLOUD(0,-6)+'<g stroke="var(--rain)" stroke-width="3" stroke-linecap="round"><path d="M14 38l-3 7M22 38l-3 7M30 38l-3 7M38 38l-3 7"/></g>',
+  snow: CLOUD(0,-6)+'<g fill="var(--rain)"><circle cx="16" cy="42" r="2.5"/><circle cx="26" cy="44" r="2.5"/><circle cx="36" cy="42" r="2.5"/></g>'
+};
+const icon=(c,label)=>`<svg viewBox="0 0 48 48" role="img" aria-label="${label}">${ICONS[c]||ICONS.cloud}</svg>`;
+
+function wmo(code){
+  if(code===0) return ["晴れ","sun"];
+  if(code<=2) return ["晴れ時々くもり","suncloud"];
+  if(code===3) return ["くもり","cloud"];
+  if(code<=48) return ["霧","cloud"];
+  if(code<=57) return ["霧雨","cloudrain"];
+  if(code<=65) return ["雨","rain"];
+  if(code<=67) return ["冷たい雨","rain"];
+  if(code<=77) return ["雪","snow"];
+  if(code<=82) return ["にわか雨","cloudrain"];
+  if(code<=86) return ["にわか雪","snow"];
+  return ["雷雨","rain"];
+}
+
+/* ===== 3. 時刻ごとの気温 ===== */
+/* 時刻予報が無い日は、最高・最低気温から一般的な1日の気温の動きで推定
+   （朝7時は最低に近く、13〜14時ごろ最高、18時は最高と翌朝の最低の中間くらい） */
+const SHAPE={7:.1,8:.3,11:.75,12:.9,13:1,14:1,15:.95};
+function hourly(day,next){
+  if(day.h) return {temps:Object.fromEntries(HRS.map((h,k)=>[h,day.h[k]])),est:false};
+  const t={}, range=day.hi-day.lo;
+  for(const h of HRS){
+    if(h===18){ const nlo=next?next.lo:day.lo; t[h]=Math.round(day.hi-(day.hi-nlo)*.5); }
+    else t[h]=Math.round(day.lo+range*SHAPE[h]);
+  }
+  return {temps:t,est:true};
+}
+function outInfo(days,i,plan){
+  const {temps,est}=hourly(days[i],days[i+1]);
+  const hs=PLANS[plan].hours;
+  const coldest=Math.min(...hs.map(h=>temps[h]));
+  const coldHour=hs.find(h=>temps[h]===coldest);
+  return {temps,est,coldest,coldHour,hs};
+}
+
+/* ===== 4. 服装アドバイス（外にいる時間でいちばん寒い気温で判定） ===== */
+function wear(T){
+  if(T>=25) return "半袖で過ごせます。";
+  if(T>=21) return "長袖シャツや薄手のブラウス1枚で。";
+  if(T>=17) return "長袖に、カーディガンなど薄手の羽織りを。";
+  if(T>=13) return "セーターや薄手のジャケットを。";
+  if(T>=9)  return "コートを着てお出かけください。";
+  return "厚手のコートに、マフラーや手袋も。";
+}
+function wearShort(T){
+  if(T>=25) return "半袖"; if(T>=21) return "長袖1枚"; if(T>=17) return "薄手の羽織り";
+  if(T>=13) return "セーター・上着"; if(T>=9) return "コート"; return "厚手コート";
+}
+function advice(days,i,plan){
+  const day=days[i], o=outInfo(days,i,plan), tips=[];
+  const pre=o.est?"約":"";
+  if(plan==="commute"){
+    const morning=Math.min(o.temps[7],o.temps[8]), eve=o.temps[18];
+    if(day.hi-o.coldest>=7) tips.push(`日中は${day.hi}℃まで上がります。職場では脱いで調整できる上着が便利です。`);
+    if(eve<=15) tips.push(`帰りの18時ごろは${pre}${eve}℃。日が沈んだ後は風で数字より寒く感じます。`);
+    if(morning<=8) tips.push(`朝は${pre}${morning}℃。首元や手先も温かく。`);
+  }else{
+    const eve=o.temps[18];
+    if(o.coldest-eve>=3) tips.push(`夕方まで外にいるなら、18時ごろは${pre}${eve}℃に下がります。もう1枚持って出ると安心です。`);
+  }
+  if(i>0){
+    const y=outInfo(days,i-1,plan), dd=o.coldest-y.coldest;
+    if(dd>=3) tips.push(`同じ時間帯で比べると昨日より${dd}℃暖かめです。`);
+    else if(dd<=-3) tips.push(`同じ時間帯で比べると昨日より${-dd}℃寒くなります。昨日より1枚多めに。`);
+  }
+  if(day.p>=50) tips.push(`雨の確率${day.p}%。長傘と、すべりにくい靴で。`);
+  else if(day.p>=30) tips.push(`雨の確率${day.p}%。折りたたみ傘をかばんに。`);
+  return {o,pre,main:wear(o.coldest),tips};
+}
+
+/* ===== 5. 表示 ===== */
+const WD=["日","月","火","水","木","金","土"];
+const fmt=s=>{const t=new Date(s+"T00:00:00");return {md:`${t.getMonth()+1}/${t.getDate()}`,wd:WD[t.getDay()],dow:t.getDay()};};
+function diffHTML(n){
+  if(n>0) return `<span class="diff up">昨日より ＋${n}℃ ▲</span>`;
+  if(n<0) return `<span class="diff down">昨日より −${-n}℃ ▼</span>`;
+  return `<span class="diff same">昨日と同じ ±0℃</span>`;
+}
+function todayKey(){
+  const n=new Date(), p=x=>String(x).padStart(2,"0");
+  return `${n.getFullYear()}-${p(n.getMonth()+1)}-${p(n.getDate())}`;
+}
+let DATA=SNAPSHOT, city="sakai", plan="commute";
+try{
+  const s=localStorage.getItem("tenki-city"); if(s&&CITIES[s]) city=s;
+  const p=localStorage.getItem("tenki-plan"); if(p&&PLANS[p]) plan=p;
+}catch(e){}
+
+function render(){
+  const days=DATA[city];
+  let i=days.findIndex(d=>d.d===todayKey());
+  if(i<1) i=1;
+  const t=days[i], y=days[i-1], f=fmt(t.d), a=advice(days,i,plan), P=PLANS[plan];
+  const chips=a.o.hs.map(h=>`<div class="hr${h===a.o.coldHour?" coldest":""}"><span class="t">${h}時</span><span class="v">${a.pre}${a.o.temps[h]}℃</span></div>`).join("");
+  document.getElementById("today").innerHTML=`
+    <div class="today-top">
+      ${icon(t.c,t.w)}
+      <div>
+        <div class="today-label">${CITIES[city].name}　今日 ${f.md}(${f.wd})</div>
+        <div class="today-wx">${t.w}</div>
+      </div>
+    </div>
+    <div class="temps">
+      <div class="temp hi"><span class="k">最高気温</span><span class="v">${t.hi}℃</span>${diffHTML(t.hi-y.hi)}</div>
+      <div class="temp lo"><span class="k">最低気温</span><span class="v">${t.lo}℃</span>${diffHTML(t.lo-y.lo)}</div>
+    </div>
+    <div class="out">
+      <h3>外にいる時間の気温（${P.name}）</h3>
+      <div class="hours">${chips}</div>
+      ${a.o.est?`<div class="note">時刻ごとの予報がないため、最高・最低気温からの推定です。</div>`:""}
+    </div>
+    <div class="rainline">☂ 雨の降る確率 <b>${t.p}%</b></div>
+    <div class="advice">
+      <h2>お出かけの服装</h2>
+      <div class="basis">いちばん寒い ${a.o.coldHour}時の${a.pre}${a.o.coldest}℃ で判断</div>
+      <div class="main">${a.main}</div>
+      ${a.tips.length?`<ul>${a.tips.map(x=>`<li>${x}</li>`).join("")}</ul>`:""}
+    </div>`;
+  document.getElementById("weekTitle").textContent=`これから1週間（${P.name}の服装）`;
+  document.getElementById("week").innerHTML=days.slice(i,i+7).map((d,k)=>{
+    const g=fmt(d.d), o=outInfo(days,i+k,plan), pre=o.est?"約":"";
+    const wdc=g.dow===0?"sun":g.dow===6?"sat":"";
+    return `<div class="row${k===0?" is-today":""}">
+      <div class="d">${g.md}<span class="wd ${wdc}">${k===0?"今日":g.wd+"曜"}</span></div>
+      ${icon(d.c,d.w)}
+      <div class="w"><div class="t">${d.w}</div><div class="cl">${P.short} <b>${pre}${o.coldest}℃</b>：${wearShort(o.coldest)}</div></div>
+      <div class="nums"><span class="hl"><span class="h">${d.hi}</span> / <span class="l">${d.lo}</span>℃</span><span class="p">☂ ${d.p}%</span></div>
+    </div>`;}).join("");
+  document.querySelectorAll("#cityTabs button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.city===city?"true":"false"));
+  document.querySelectorAll("#planTabs button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.plan===plan?"true":"false"));
+}
+
+document.querySelectorAll("#cityTabs button").forEach(b=>b.addEventListener("click",()=>{
+  city=b.dataset.city; try{localStorage.setItem("tenki-city",city);}catch(e){} render();
+}));
+document.querySelectorAll("#planTabs button").forEach(b=>b.addEventListener("click",()=>{
+  plan=b.dataset.plan; try{localStorage.setItem("tenki-plan",plan);}catch(e){} render();
+}));
+
+function setSource(text){
+  document.getElementById("meta").textContent=text;
+  document.getElementById("source").textContent="出典："+text;
+}
+
+/* ===== 6. 最新予報の取得（使える環境だけ） ===== */
+async function loadLive(){
+  const out={};
+  for(const [key,c] of Object.entries(CITIES)){
+    const url=`https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}`+
+      `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max`+
+      `&hourly=temperature_2m&timezone=Asia%2FTokyo&past_days=1&forecast_days=8`;
+    const r=await fetch(url); if(!r.ok) throw new Error("取得失敗");
+    const j=await r.json(), dl=j.daily, hr=j.hourly, byTime={};
+    hr.time.forEach((t,k)=>{byTime[t]=hr.temperature_2m[k];});
+    out[key]=dl.time.map((d,k)=>{
+      const [w,ic]=wmo(dl.weather_code[k]);
+      const h=HRS.map(x=>byTime[`${d}T${String(x).padStart(2,"0")}:00`]);
+      return {d,hi:Math.round(dl.temperature_2m_max[k]),lo:Math.round(dl.temperature_2m_min[k]),
+        p:dl.precipitation_probability_max[k]??0,w,c:ic,
+        h:h.every(v=>typeof v==="number")?h.map(Math.round):undefined};
+    });
+  }
+  const n=new Date();
+  out.label=`最新の予報(Open-Meteo) ${n.getMonth()+1}月${n.getDate()}日 ${n.getHours()}:${String(n.getMinutes()).padStart(2,"0")}取得`;
+  return out;
+}
+
+setSource(SNAPSHOT.label);
+render();
+loadLive().then(d=>{DATA=d; setSource(d.label); render();}).catch(()=>{});
+</script>
